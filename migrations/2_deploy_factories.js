@@ -6,5 +6,5 @@ module.exports = async function (deployer, network, accounts) {
     if (network === 'development' || network === 'coverage') {
         deployer.deploy(TMath);
     }
-    deployer.deploy(BFactory);
+    deployer.deploy(BFactory, "0x0000000000000000000000000000000000000000");
 };

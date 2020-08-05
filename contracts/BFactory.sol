@@ -16,8 +16,10 @@ pragma solidity 0.5.12;
 // Builds new BPools, logging their addresses and providing `isBPool(address) -> (bool)`
 
 import "./BPool.sol";
+import "./BAbstractFactory.sol";
 
-contract BFactory is BBronze {
+
+contract BFactory is BAbstractFactory, BBronze {
     event LOG_NEW_POOL(
         address indexed caller,
         address indexed pool
@@ -29,17 +31,27 @@ contract BFactory is BBronze {
     );
 
     mapping(address=>bool) private _isBPool;
+    BAbstractFactory private _redirect;
 
     function isBPool(address b)
         external view returns (bool)
     {
-        return _isBPool[b];
+        return _isBPool[b] || (address(_redirect) != address(0) && _redirect.isBPool(b));
+    }
+
+    function redirect()
+        external view
+        returns (address)
+    {
+        return address(_redirect);
     }
 
     function newBPool()
         external
         returns (BPool)
     {
+        require(msg.sender == _blabs, "ERR_NOT_BLABS");
+
         BPool bpool = new BPool();
         _isBPool[address(bpool)] = true;
         emit LOG_NEW_POOL(msg.sender, address(bpool));
@@ -49,8 +61,9 @@ contract BFactory is BBronze {
 
     address private _blabs;
 
-    constructor() public {
+    constructor(address existing) public {
         _blabs = msg.sender;
+        _redirect = BAbstractFactory(existing);
     }
 
     function getBLabs()
@@ -72,6 +85,8 @@ contract BFactory is BBronze {
         external 
     {
         require(msg.sender == _blabs, "ERR_NOT_BLABS");
+        require(_isBPool[address(pool)], "ERR_NOT_MANAGED_POOL");
+
         uint collected = IERC20(pool).balanceOf(address(this));
         bool xfer = pool.transfer(_blabs, collected);
         require(xfer, "ERR_ERC20_FAILED");

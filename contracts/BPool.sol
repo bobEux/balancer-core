@@ -13,10 +13,13 @@
 
 pragma solidity 0.5.12;
 
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+
 import "./BToken.sol";
 import "./BMath.sol";
 
 contract BPool is BBronze, BToken, BMath {
+    using SafeERC20 for IERC20;
 
     struct Record {
         bool bound;   // is token bound to pool
@@ -701,15 +704,13 @@ contract BPool is BBronze, BToken, BMath {
     function _pullUnderlying(address erc20, address from, uint amount)
         internal
     {
-        bool xfer = IERC20(erc20).transferFrom(from, address(this), amount);
-        require(xfer, "ERR_ERC20_FALSE");
+        IERC20(erc20).safeTransferFrom(from, address(this), amount);
     }
 
     function _pushUnderlying(address erc20, address to, uint amount)
         internal
     {
-        bool xfer = IERC20(erc20).transfer(to, amount);
-        require(xfer, "ERR_ERC20_FALSE");
+        IERC20(erc20).safeTransfer(to, amount);
     }
 
     function _pullPoolShare(address from, uint amount)
